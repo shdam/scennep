@@ -113,9 +113,9 @@ scennep <- function(
                 obj <- Seurat::SCTransform(obj)
             } else {
                 Seurat::DefaultAssay(obj) <- "SCT"
-                if ("nnbulk" %in% Seurat::Assays(obj)){
+                if ("scennep" %in% Seurat::Assays(obj)){
                 warning("Assay 'nnbulk' already exists! It will be overwritten.\n")
-                obj[["nnbulk"]] <- NULL
+                obj[["scennep"]] <- NULL
                 }
             }
         } else if (flavor == "lognormal") {
@@ -148,11 +148,11 @@ scennep <- function(
         gc()
     }
     num_cells <- ncol(snn_graph)
-    message("Pseudo-bulking each cell with its ", nn_count, " neighbors")
+    message("Pseudo-bulking each cell with its ", nn_top, " nearest neighbors")
     pseudobulked_expr <- APPLY(seq_len(num_cells), function(cell_id) {
         neighbors <- which(snn_graph[, cell_id] > nn_cutoff)
         
-        if (length(neighbors) > nn_count) {
+        if (length(neighbors) > nn_top) {
             # Order neighbors by SNN strength
             neighbor_weights <- snn_graph[neighbors, cell_id]
             top_neighbors <- order(neighbor_weights, decreasing = TRUE)[seq_len(nn_top)]
@@ -199,6 +199,7 @@ extract_expression <- function(obj, assay, normalize_data) {
 
 
 build_snn <- function(obj, nn_count, npcs) {
+    message("Building SNN graph with k = ", nn_count)
     snn_graph <- switch(
         class(obj)[1],
         "Seurat" = build_snn_seurat(obj, nn_count, npcs),
@@ -212,7 +213,6 @@ build_snn_seurat <- function(seu_obj, nn_count, npcs) {
 
     detect_snn <- grepl("_snn", SeuratObject::Graphs(seu_obj))
     if (!any(detect_snn)) {
-        message("Building SNN graph")
         seu_obj <- Seurat::FindNeighbors(
             seu_obj,
             reduction = "pca",
