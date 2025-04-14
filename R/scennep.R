@@ -35,14 +35,14 @@
 scennep <- function(
         obj,
         nn_count = 50,
-        nn_top = 10,
+        nn_top = nn_count,
         nn_cutoff = 1/5,
         pc_explained = .90,
         npcs = NULL,
         FUN = Matrix::rowSums,
         markers = NULL,
         as = c("seurat", "bioc"),
-        flavor = c("lognormal", "SCT"),
+        flavor = c("lognormal", "SCT", "CLR"),
         return_S4 = TRUE,
         normalize_data = TRUE,
         assay = c("counts", "exprs", "logcounts"),
@@ -115,6 +115,8 @@ scennep <- function(
             }
         } else if (flavor == "lognormal") {
             obj <- Seurat::NormalizeData(obj)
+        } else if (flavor == "CLR") {
+            obj <- Seurat::NormalizeData(obj, normalization.method = "CLR", margin = 2)
         }
         # Build PCA
         if (!"scale.data" %in% SeuratObject::Layers(obj)) obj <- Seurat::ScaleData(obj)
