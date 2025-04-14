@@ -29,7 +29,7 @@
 #'
 #' @examples
 #' # Assuming `pbmc` is a Seurat object with SCTransform normalization and an SNN graph computed
-#' pbmc <- pseudobulk_neighbors(pbmc, nn_count = 100, mc.cores = 8, return_seurat = TRUE)
+#' pbmc <- scennep(pbmc, nn_count = 100, mc.cores = 8, return_S4 = TRUE)
 #'
 #' @export
 scennep <- function(
@@ -38,7 +38,7 @@ scennep <- function(
         nn_top = 10,
         nn_cutoff = 1/5,
         pc_explained = .90,
-        # npcs = 15,
+        npcs = NULL,
         FUN = Matrix::rowSums,
         markers = NULL,
         as = c("seurat", "bioc"),
@@ -78,11 +78,6 @@ scennep <- function(
     # Define APPLY
     APPLY <- set_apply(mc.cores, pb)
 
-    # Return S4
-    # if (!inherits(obj, "Seurat") & as != "seurat") {
-    #   return_S4 <- FALSE
-    # }
-
     # Create object type
     if (class(obj)[1] %in% c("matrix", "dgCMatrix")) {
         if (as == "seurat") {
@@ -95,7 +90,7 @@ scennep <- function(
         }
     }
 
-  # Normalize data
+    # Normalize data
     if (as == "bioc") {
         if (assay == "counts" & normalize_data) {
             obj <- scuttle::logNormCounts(obj)
@@ -128,8 +123,10 @@ scennep <- function(
         variance <- obj[['pca']]@stdev**2
         cumulative_variance <- cumsum(variance) / sum(variance)
     }
-    npcs <- which(cumulative_variance >= pc_explained)[1]
-    npcs <- ifelse(is.na(npcs), length(cumulative_variance), npcs)
+    if (is(npcs, "NULL")) {
+        npcs <- which(cumulative_variance >= pc_explained)[1]
+        npcs <- ifelse(is.na(npcs), length(cumulative_variance), npcs)
+    }
 
     # Build SNN graph
     snn_graph <- build_snn(obj, nn_count, npcs)
