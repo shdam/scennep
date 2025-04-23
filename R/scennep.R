@@ -102,16 +102,17 @@ scennep <- function(
             attr("percentVar") |> 
             cumsum() / 100
     } else if (as == "seurat") {
+        if ("scennep" %in% Seurat::Assays(obj)){
+            warning("Assay 'scennep' already exists! It will be overwritten.\n")
+            Seurat::DefaultAssay(obj) <- Seurat::Assays(obj)[Seurat::Assays(obj) != "scennep"][1]
+            obj[["scennep"]] <- NULL
+        }
         # Normalize flavor
         if (flavor == "SCT") {
             if (!"SCT" %in% Seurat::Assays(obj)) {
                 obj <- Seurat::SCTransform(obj)
             } else {
                 Seurat::DefaultAssay(obj) <- "SCT"
-                if ("scennep" %in% Seurat::Assays(obj)){
-                warning("Assay 'nnbulk' already exists! It will be overwritten.\n")
-                obj[["scennep"]] <- NULL
-                }
             }
         } else if (flavor == "lognormal") {
             obj <- Seurat::NormalizeData(obj)
@@ -170,7 +171,11 @@ scennep <- function(
 
     message("Adding pseudo-bulked expression data to assay 'scennep'")
     if (as == "seurat") {
-        pseudobulked_expr <- Seurat::CreateAssayObject(data = pseudobulked_expr, key = "scennep_")
+        if (normalize_data) {
+            pseudobulked_expr <- Seurat::CreateAssayObject(data = pseudobulked_expr, key = "scennep_")
+        } else {
+            pseudobulked_expr <- Seurat::CreateAssayObject(counts = pseudobulked_expr, key = "scennep_")
+        }
         
         obj[["scennep"]] <- pseudobulked_expr
         Seurat::VariableFeatures(obj, assay = "scennep") <- Seurat::VariableFeatures(obj, assay = Seurat::DefaultAssay(obj))
