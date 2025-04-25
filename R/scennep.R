@@ -39,11 +39,11 @@ scennep <- function(
         nn_cutoff = 1/5,
         pc_explained = .90,
         npcs = NULL,
-        FUN = Matrix::rowSums,
+        FUN = NULL,
         markers = NULL,
         as = c("seurat", "bioc"),
-        flavor = c("lognormal", "SCT", "CLR"),
-        return_S4 = TRUE,
+        flavor = c("lognormal", "SCT", "CLR", "none"),
+        return_S4 = ifelse(inherits(obj, "matrix"), FALSE, TRUE),
         normalize_data = TRUE,
         assay = c("counts", "exprs", "logcounts"),
         pb = FALSE,
@@ -118,6 +118,8 @@ scennep <- function(
             obj <- Seurat::NormalizeData(obj)
         } else if (flavor == "CLR") {
             obj <- Seurat::NormalizeData(obj, normalization.method = "CLR", margin = 2)
+        } else if (flavor == "none") {
+            obj <- SeuratObject::SetAssayData(obj, layer = "data", new.data = SeuratObject::GetAssayData(obj, layer = "counts"))
         }
         # Build PCA
         if (!"scale.data" %in% SeuratObject::Layers(obj)) obj <- Seurat::ScaleData(obj)
@@ -151,15 +153,24 @@ scennep <- function(
     message("Pseudo-bulking each cell with its ", nn_top, " nearest neighbors")
     pseudobulked_expr <- APPLY(seq_len(num_cells), function(cell_id) {
         neighbors <- which(snn_graph[, cell_id] > nn_cutoff)
-        
-        if (length(neighbors) > nn_top) {
+        nn_top <- min(nn_top, length(neighbors))
+        # if (length(neighbors) > nn_top) {
             # Order neighbors by SNN strength
-            neighbor_weights <- snn_graph[neighbors, cell_id]
-            top_neighbors <- order(neighbor_weights, decreasing = TRUE)[seq_len(nn_top)]
-            neighbors <- neighbors[top_neighbors]
+        neighbor_weights <- snn_graph[neighbors, cell_id]
+        top_neighbors <- order(neighbor_weights, decreasing = TRUE)[seq_len(nn_top)]
+        neighbors <- neighbors[top_neighbors]
+        neighbor_weights <- neighbor_weights[top_neighbors]
+        # }
+        if (length(neighbors) == 1) {
+            return(expr[markers, neighbors])
+            # neighbors <- c(neighbors, neighbors)
+            # neighbor_weights <- c(neighbor_weights, neighbor_weights)
+        } 
+        if (is.null(FUN)) {
+            pseudobulked <- Matrix::rowSums(expr[markers, neighbors] * neighbor_weights) / sum(neighbor_weights)
+        } else {
+            pseudobulked <- FUN(expr[markers, neighbors])
         }
-        if (length(neighbors) == 1) neighbors <- c(neighbors, neighbors)
-        pseudobulked <- FUN(expr[markers, neighbors])
         return(pseudobulked)
     })
 
@@ -215,20 +226,21 @@ build_snn <- function(obj, nn_count, npcs) {
 
 build_snn_seurat <- function(seu_obj, nn_count, npcs) {
 
-    detect_snn <- grepl("_snn", SeuratObject::Graphs(seu_obj))
-    if (!any(detect_snn)) {
-        seu_obj <- Seurat::FindNeighbors(
-            seu_obj,
-            reduction = "pca",
-            dims = 1:npcs,
-            k.param = nn_count,
-            compute.SNN = TRUE)
-        slot <- SeuratObject::Graphs(seu_obj)[
-            grepl("_snn", SeuratObject::Graphs(seu_obj))]
-    } else {
-        message("Reusing existing SNN graph")
-        slot <- SeuratObject::Graphs(seu_obj)[which(detect_snn)]
-    }
+    # detect_snn <- grepl("_snn", SeuratObject::Graphs(seu_obj))
+    # if (!any(detect_snn)) {
+    seu_obj <- Seurat::FindNeighbors(
+        seu_obj,
+        reduction = "pca",
+        dims = 1:npcs,
+        k.param = nn_count,
+        compute.SNN = TRUE,
+        prune.SNN = 0)
+    slot <- SeuratObject::Graphs(seu_obj)[
+        grepl("_snn", SeuratObject::Graphs(seu_obj))]
+    # } else {
+    #     message("Reusing existing SNN graph")
+    #     slot <- SeuratObject::Graphs(seu_obj)[which(detect_snn)]
+    # }
 
     # Extract SNN graph
     snn_graph <- SeuratObject::Graphs(seu_obj, slot = slot)
