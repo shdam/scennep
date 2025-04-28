@@ -26,7 +26,7 @@ set_apply <- function(mc.cores, pb = TRUE) {
         APPLY <- lapply
     } else {
         if(pb) {
-            cyCombine:::missing_package(package = "pbmcapply")
+            check_package(package = "pbmcapply")
             APPLY <- pbmcapply::pbmclapply
         } else {
             APPLY <- parallel::mclapply

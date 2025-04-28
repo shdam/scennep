@@ -6,16 +6,19 @@
 \usage{
 scennep(
   obj,
-  nn_count = 100,
-  nn_cutoff = 1/2,
-  npcs = 15,
-  FUN = rowSums,
+  nn_count = 20,
+  nn_top = nn_count,
+  nn_cutoff = 1/5,
+  pc_explained = 0.9,
+  npcs = NULL,
+  FUN = NULL,
   markers = NULL,
+  features = NULL,
   as = c("seurat", "bioc"),
-  flavor = c("lognormal", "SCT"),
-  return_seurat = TRUE,
+  flavor = c("lognormal", "SCT", "CLR", "none"),
+  return_S4 = ifelse(inherits(obj, "matrix"), FALSE, TRUE),
   normalize_data = TRUE,
-  assay = c("exprs", "counts"),
+  assay = c("counts", "exprs", "logcounts"),
   pb = FALSE,
   mc.cores = 1
 )
@@ -24,9 +27,13 @@ scennep(
 \item{obj}{A Seurat or SCE object or matrix containing single-cell expression data.}
 
 \item{nn_count}{The number of nearest neighbors to consider for pseudobulking. If a
-cell has fewer than this number of neighbors, all are used. Default is 100.}
+cell has fewer than this number of neighbors, all are used. Default is 20.}
+
+\item{nn_top}{The number of top nearest neighbors to use for aggregation.}
 
 \item{nn_cutoff}{The strength cutoff for shared neighbors.}
+
+\item{pc_explained}{The fraction of variance explained cutoff for selecting npcs. Overwritten if \code{npcs} are provided.}
 
 \item{npcs}{Number of PCs to use for the neighborhood graph.}
 
@@ -34,10 +41,15 @@ cell has fewer than this number of neighbors, all are used. Default is 100.}
 
 \item{markers}{Subset to markers of interest.}
 
-\item{as}{If you provide a matrix, decide if you want to use Seurat or Bioconductor methods.}
+\item{features}{Subset to features of interest (overwritten if \code{markers} is provided).}
 
-\item{return_seurat}{Logical. If TRUE, the Seurat object is returned with an nnbulk assay, but this is at the cost of memmory efficiency.
-I recommend setting it to FALSE and adding the assay manually.}
+\item{as}{If you provide a matrix, decide if you want to use Seurat or Bioconductor methods. Defaults to Seurat.}
+
+\item{flavor}{Flavor of normalization of counts. Set to "none" if data is already normalized or you wish to build PCA on counts.}
+
+\item{return_S4}{Logical. If TRUE, the Seurat/SCE object is returned with a 'scennep' assay.}
+
+\item{normalize_data}{Logical. If TRUE (default), the normalized data is aggregated.}
 
 \item{assay}{The name of the assay in the SingleCellExperiment object.}
 
@@ -47,7 +59,7 @@ I recommend setting it to FALSE and adding the assay manually.}
 one less than the total number of cores available to prevent the system from locking up.}
 }
 \value{
-The input Seurat object with an additional assay named "scennep", which contains
+The input Seurat/SCE object with an additional assay named "scennep", which contains
 the pseudobulked expression data.
 }
 \description{
@@ -58,7 +70,7 @@ by the \code{nn_count}. If a cell has fewer neighbors than \code{nn_count}, all 
 are used.
 }
 \examples{
-# Assuming `pbmc` is a Seurat object with SCTransform normalization and an SNN graph computed
-pbmc <- pseudobulk_neighbors(pbmc, nn_count = 100, mc.cores = 8, return_seurat = TRUE)
+data("example_counts")
+example <- scennep(example_counts)
 
 }
