@@ -20,7 +20,9 @@ scennep(
   normalize_data = TRUE,
   assay = c("counts", "exprs", "logcounts"),
   pb = FALSE,
-  mc.cores = 1
+  mc.cores = 1,
+  verbose = FALSE,
+  silent = FALSE
 )
 }
 \arguments{
@@ -57,6 +59,10 @@ cell has fewer than this number of neighbors, all are used. Default is 20.}
 
 \item{mc.cores}{The number of cores to use for parallel processing. By default, it uses
 one less than the total number of cores available to prevent the system from locking up.}
+
+\item{verbose}{Print Seurat/Bioc messages}
+
+\item{silent}{Hide scennep messages}
 }
 \value{
 The input Seurat/SCE object with an additional assay named "scennep", which contains
@@ -70,7 +76,7 @@ by the \code{nn_count}. If a cell has fewer neighbors than \code{nn_count}, all 
 are used.
 }
 \examples{
-data("example_counts")
-example <- scennep(example_counts)
+data("pbmc_small", package = "SeuratObject")
+example <- scennep(pbmc_small)
 
 }

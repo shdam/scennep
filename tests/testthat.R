@@ -8,5 +8,7 @@
 
 library(testthat)
 library(scennep)
+library(Seurat)
+library(SingleCellExperiment)
 
 test_check("scennep")

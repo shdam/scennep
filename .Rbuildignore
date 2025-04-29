@@ -4,3 +4,5 @@
 ^data-raw$
 tmp
 .filenignore
+^README\.Rmd$
+^README\.md$

@@ -24,6 +24,8 @@
 #'   one less than the total number of cores available to prevent the system from locking up.
 #' @param pb Logical. If TRUE, a progress bar is printed.
 #' @param return_S4 Logical. If TRUE, the Seurat/SCE object is returned with a 'scennep' assay.
+#' @param verbose Print Seurat/Bioc messages
+#' @param silent Hide scennep messages
 #'
 #' @return The input Seurat/SCE object with an additional assay named "scennep", which contains
 #'   the pseudobulked expression data.
@@ -33,8 +35,8 @@
 #' @importFrom methods as is
 #'
 #' @examples
-#' data("example_counts")
-#' example <- scennep(example_counts)
+#' data("pbmc_small", package = "SeuratObject")
+#' example <- scennep(pbmc_small)
 #'
 #' @export
 scennep <- function(
