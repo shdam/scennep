@@ -25,8 +25,9 @@ Please cite with `citation("scennep")`
 
 ### Dependencies
 
-`scennep` works with both `Bioconductor` objects and `Seurat`. Install
-your preferred framework or both:
+`scennep` works with both `Bioconductor` objects and `Seurat`.
+
+Install your preferred framework or both:
 
 ``` r
 # Seurat
@@ -55,6 +56,8 @@ object. If a matrix is provided, please choose an option for
 `as = c("seurat", "bioc")`.
 
 This example usage uses a tiny simulated dataset as a `Seurat` object.
+
+See `?scennep` for the full configuration.
 
 ``` r
 library(Seurat)
@@ -92,6 +95,13 @@ pbmc_small <- scennep(
 #> Pseudobulking each cell with its 5 nearest neighbors
 #> Adding pseudobulked expression data to assay 'scennep'
 #> Warning: Layer counts isn't present in the assay object; returning NULL
+pbmc_small
+#> An object of class Seurat 
+#> 460 features across 80 samples within 2 assays 
+#> Active assay: scennep (230 features, 230 variable features)
+#>  1 layer present: data
+#>  1 other assay present: RNA
+#>  2 dimensional reductions calculated: pca, tsne
 ```
 
 ``` r

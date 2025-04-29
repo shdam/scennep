@@ -34,6 +34,7 @@ Please cite with `citation("scennep")`
 ### Dependencies
 
 `scennep` works with both `Bioconductor` objects and `Seurat`.
+
 Install your preferred framework or both:
 
 ```{r dependencies, eval=FALSE}
@@ -63,6 +64,7 @@ If a matrix is provided, please choose an option for `as = c("seurat", "bioc")`.
 
 This example usage uses a tiny simulated dataset as a `Seurat` object.
 
+See `?scennep` for the full configuration.
     
 ```{r scennep}
 library(Seurat)
@@ -77,7 +79,7 @@ pbmc_small <- scennep(
     pbmc_small,
     nn_count = 5 # Number of nearest neighbors - default: 20 - 5 is just for this tiny example
     )
-
+pbmc_small
 ```
 
 ```{r plotting}
@@ -87,7 +89,6 @@ pbmc_small <- Seurat::ScaleData(pbmc_small)
 pbmc_small <- Seurat::RunPCA(pbmc_small, verbose = FALSE)
 Seurat::DimPlot(pbmc_small, reduction = "pca", group.by = "RNA_snn_res.1")
 ```
-
 
 ## Report issues
 
