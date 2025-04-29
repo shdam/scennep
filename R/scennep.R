@@ -19,6 +19,7 @@
 #' @param as If you provide a matrix, decide if you want to use Seurat or Bioconductor methods. Defaults to Seurat.
 #' @param flavor Flavor of normalization of counts. Set to "none" if data is already normalized or you wish to build PCA on counts.
 #' @param normalize_data Logical. If TRUE (default), the normalized data is aggregated.
+#' @param distance Distance metric for annoy: euclidean, cosine, manhattan, or hamming. OBS: hamming is only available with Seurat.
 #' @param assay The name of the assay in the SingleCellExperiment object.
 #' @param mc.cores The number of cores to use for parallel processing. By default, it uses
 #'   one less than the total number of cores available to prevent the system from locking up.
@@ -51,6 +52,7 @@ scennep <- function(
         features = NULL,
         as = c("seurat", "bioc"),
         flavor = c("lognormal", "SCT", "CLR", "none"),
+        distance = c("euclidean", "cosine", "manhattan", "hamming"),
         return_S4 = ifelse(inherits(obj, "matrix"), FALSE, TRUE),
         normalize_data = TRUE,
         assay = c("counts", "exprs", "logcounts"),
@@ -67,8 +69,9 @@ scennep <- function(
 
     # Match args
     as <- match.arg(as)
-    flavor <- match.arg(flavor)
     assay <- match.arg(assay)
+    flavor <- match.arg(flavor)
+    distance <- match.arg(distance)
   
     if (inherits(obj, "Seurat")) {
         as <- "seurat"
@@ -82,6 +85,8 @@ scennep <- function(
         invisible(sapply(
             c("SingleCellExperiment", "scater", "scuttle", "scran", "igraph"), 
             check_package, repo = "bioc"))
+        if (distance == "hamming") stop("`distance = 'hamming'` is only supported in Seurat.")
+        distance <- .simpleCap(distance)
     }
 
     # Define APPLY
@@ -146,7 +151,21 @@ scennep <- function(
 
     # Build SNN graph
     if (!silent) message("Building SNN graph with k = ", nn_count)
-    snn_graph <- build_snn(obj, nn_count, npcs)
+    snn_graph <- switch(
+        class(obj)[1],
+        "Seurat" = build_snn_seurat(
+            obj, 
+            nn_count = nn_count,
+            npcs = npcs,
+            distance = distance),
+        "SingleCellExperiment" = build_snn_sce(
+            obj,
+            nn_count = nn_count,
+            npcs = npcs,
+            mc.cores = mc.cores,
+            distance = distance),
+        stop("Unsupported object class")
+    )
     obj <- snn_graph$obj
     snn_graph <- snn_graph$graph
     
@@ -230,19 +249,8 @@ extract_expression <- function(obj, assay, normalize_data) {
     return(expr)
 }
 
-
-build_snn <- function(obj, nn_count, npcs) {
-    snn_graph <- switch(
-        class(obj)[1],
-        "Seurat" = build_snn_seurat(obj, nn_count, npcs),
-        "SingleCellExperiment" = build_snn_sce(obj, nn_count, npcs),
-        stop("Unsupported object class")
-    )
-    return(snn_graph)
-}
-
-build_snn_seurat <- function(seu_obj, nn_count, npcs) {
-
+build_snn_seurat <- function(seu_obj, nn_count, npcs, distance = "euclidean") {
+    # Build SNN
     seu_obj <- Seurat::FindNeighbors(
         seu_obj,
         reduction = "pca",
@@ -250,6 +258,7 @@ build_snn_seurat <- function(seu_obj, nn_count, npcs) {
         k.param = nn_count,
         compute.SNN = TRUE,
         prune.SNN = 0,
+        annoy.metric = distance,
         verbose = FALSE)
     slot <- SeuratObject::Graphs(seu_obj)[
         grepl("_snn", SeuratObject::Graphs(seu_obj))]
@@ -261,7 +270,7 @@ build_snn_seurat <- function(seu_obj, nn_count, npcs) {
 }
 
 
-build_snn_sce <- function(sce, nn_count, npcs) {
+build_snn_sce <- function(sce, nn_count, npcs, mc.cores = 1, distance = "Euclidean") {
     # Subset PCA
     SingleCellExperiment::reducedDim(sce, "PCA") <- SingleCellExperiment::reducedDim(sce, "PCA")[, 1:npcs, drop = FALSE]
     # Build the SNN graph
@@ -269,7 +278,9 @@ build_snn_sce <- function(sce, nn_count, npcs) {
         sce, 
         use.dimred = 'PCA', 
         k = nn_count,
-        type = "jaccard")
+        num.threads = mc.cores,
+        type = "jaccard",
+        BNPARAM = BiocNeighbors::AnnoyParam(distance = distance))
 
     # Extract SNN graph
     snn_graph <- igraph::as_adjacency_matrix(snn_graph, attr = "weight")
