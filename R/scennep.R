@@ -53,7 +53,9 @@ scennep <- function(
         normalize_data = TRUE,
         assay = c("counts", "exprs", "logcounts"),
         pb = FALSE,
-        mc.cores = 1
+        mc.cores = 1,
+        verbose = FALSE,
+        silent = FALSE
         ) {
     # Stop if
     stopifnot(
@@ -111,35 +113,37 @@ scennep <- function(
             warning("Assay 'scennep' already exists! It will be overwritten.\n")
             Seurat::DefaultAssay(obj) <- Seurat::Assays(obj)[Seurat::Assays(obj) != "scennep"][1]
             obj[["scennep"]] <- NULL
+            obj@graphs[1:length(obj@graphs)] <- NULL
         }
         # Normalize flavor
         if (flavor == "SCT") {
             if (!"SCT" %in% Seurat::Assays(obj)) {
-                obj <- Seurat::SCTransform(obj)
+                obj <- Seurat::SCTransform(obj, verbose = verbose)
             } else {
                 Seurat::DefaultAssay(obj) <- "SCT"
             }
         } else if (flavor == "lognormal") {
-            obj <- Seurat::NormalizeData(obj)
+            obj <- Seurat::NormalizeData(obj, verbose = verbose)
         } else if (flavor == "CLR") {
-            obj <- Seurat::NormalizeData(obj, normalization.method = "CLR", margin = 2)
+            obj <- Seurat::NormalizeData(obj, normalization.method = "CLR", margin = 2, verbose = verbose)
         } else if (flavor == "none") {
             obj <- SeuratObject::SetAssayData(obj, layer = "data", new.data = SeuratObject::GetAssayData(obj, layer = "counts"))
         }
         # Build PCA
-        if (!"scale.data" %in% SeuratObject::Layers(obj)) obj <- Seurat::ScaleData(obj)
-        obj <- Seurat::FindVariableFeatures(obj)
-        if (!"pca" %in% Seurat::Reductions(obj)) obj <- Seurat::RunPCA(obj)
+        if (!"scale.data" %in% SeuratObject::Layers(obj)) obj <- Seurat::ScaleData(obj, verbose = verbose)
+        obj <- Seurat::FindVariableFeatures(obj, verbose = verbose)
+        if (!"pca" %in% Seurat::Reductions(obj)) obj <- Seurat::RunPCA(obj, verbose = verbose)
         variance <- obj[['pca']]@stdev**2
         cumulative_variance <- cumsum(variance) / sum(variance)
     }
     if (is(npcs, "NULL")) {
         npcs <- which(cumulative_variance >= pc_explained)[1]
         npcs <- ifelse(is.na(npcs), length(cumulative_variance), npcs)
-        message("Using the top ", npcs, " pcs for the SNN")
+        if (!silent) message("Using the top ", npcs, " pcs for the SNN")
     }
 
     # Build SNN graph
+    if (!silent) message("Building SNN graph with k = ", nn_count)
     snn_graph <- build_snn(obj, nn_count, npcs)
     obj <- snn_graph$obj
     snn_graph <- snn_graph$graph
@@ -164,7 +168,7 @@ scennep <- function(
         gc()
     }
     num_cells <- ncol(snn_graph)
-    message("Pseudobulking each cell with its ", nn_top, " nearest neighbors")
+    if (!silent) message("Pseudobulking each cell with its ", nn_top, " nearest neighbors")
     pseudobulked_expr <- APPLY(seq_len(num_cells), function(cell_id) {
         neighbors <- which(snn_graph[, cell_id] > nn_cutoff)
         nn_top <- min(nn_top, length(neighbors))
@@ -194,12 +198,12 @@ scennep <- function(
 
     if (!return_S4) return(pseudobulked_expr)
 
-    message("Adding pseudobulked expression data to assay 'scennep'")
+    if (!silent) message("Adding pseudobulked expression data to assay 'scennep'")
     if (as == "seurat") {
         if (normalize_data) {
-            pseudobulked_expr <- Seurat::CreateAssayObject(data = pseudobulked_expr, key = "scennep_")
+            pseudobulked_expr <- SeuratObject::CreateAssayObject(data = pseudobulked_expr, key = "scennep_")
         } else {
-            pseudobulked_expr <- Seurat::CreateAssayObject(counts = pseudobulked_expr, key = "scennep_")
+            pseudobulked_expr <- SeuratObject::CreateAssayObject(counts = pseudobulked_expr, key = "scennep_")
         }
         obj[["scennep"]] <- pseudobulked_expr
         Seurat::VariableFeatures(obj, assay = "scennep") <- Seurat::VariableFeatures(obj, assay = Seurat::DefaultAssay(obj))
@@ -226,7 +230,6 @@ extract_expression <- function(obj, assay, normalize_data) {
 
 
 build_snn <- function(obj, nn_count, npcs) {
-    message("Building SNN graph with k = ", nn_count)
     snn_graph <- switch(
         class(obj)[1],
         "Seurat" = build_snn_seurat(obj, nn_count, npcs),
@@ -244,7 +247,8 @@ build_snn_seurat <- function(seu_obj, nn_count, npcs) {
         dims = 1:npcs,
         k.param = nn_count,
         compute.SNN = TRUE,
-        prune.SNN = 0)
+        prune.SNN = 0,
+        verbose = FALSE)
     slot <- SeuratObject::Graphs(seu_obj)[
         grepl("_snn", SeuratObject::Graphs(seu_obj))]
 

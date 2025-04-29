@@ -1,11 +1,15 @@
-## code to prepare `example_counts` dataset
-## This script simulates a small scRNA-seq count matrix
-## for use in package examples and tests.
+## code to prepare `example_seu` dataset goes here
+## This script simulates a small scRNA-seq count matrix and associated metadata,
+## then packages them into a Seurat object for use in package examples and tests.
+
+# --- Dependencies ---
+library(Seurat)
+
 
 # --- Configuration ---
-set.seed(123) 
+set.seed(123) # for reproducibility
 
-n_genes <- 200    # Number of genes (rows)
+n_genes <- 200   # Number of genes (rows)
 n_cells <- 90    # Number of cells (columns)
 n_groups <- 3    # Number of distinct cell groups/types
 
@@ -29,16 +33,16 @@ gene_dispersions_log <- rnorm(n_genes, mean = log(10), sd = 0.5)
 gene_dispersions <- exp(gene_dispersions_log)
 
 # Marker Genes
-n_marker_genes_per_group <- 10
+n_marker_genes_per_group <- 4
 marker_gene_indices <- sample(1:n_genes, n_groups * n_marker_genes_per_group, replace = FALSE)
 marker_list <- split(marker_gene_indices, rep(1:n_groups, each = n_marker_genes_per_group))
 names(marker_list) <- paste0("Group", 1:n_groups)
 marker_effect_multiplier <- 20
 
-# --- Simulate Counts ---
-example_counts <- matrix(0, nrow = n_genes, ncol = n_cells)
-rownames(example_counts) <- gene_names
-colnames(example_counts) <- cell_names
+# --- Simulate Counts (Matrix) ---
+counts_matrix <- matrix(0, nrow = n_genes, ncol = n_cells)
+rownames(counts_matrix) <- gene_names
+colnames(counts_matrix) <- cell_names
 
 # Cell size factors
 cell_size_factors_log <- rnorm(n_cells, mean = 0, sd = 0.5)
@@ -57,45 +61,49 @@ for (j in 1:n_cells) {
         expected_means[markers_for_this_group] <- expected_means[markers_for_this_group] * marker_effect_multiplier
     }
     
-    expected_means <- expected_means + 1e-6 
-    
-    example_counts[, j] <- rnbinom(n_genes, size = gene_dispersions, mu = expected_means)
+    expected_means <- expected_means + 1e-6
+    counts_matrix[, j] <- rnbinom(n_genes, size = gene_dispersions, mu = expected_means)
 }
 
-# --- Create Metadata DataFrames (not used) ---
+# --- Create Cell Metadata DataFrame ---
 cell_metadata <- data.frame(
-    cell_id = cell_names,
-    group = factor(cell_group_ids), # Store groups as factor
+    group = factor(cell_group_ids),
     simulated_size_factor = cell_size_factors,
-    total_counts = colSums(example_counts),
+    nFeature_RNA = colSums(counts_matrix > 0),
+    nCount_RNA = colSums(counts_matrix),
     row.names = cell_names
 )
 
+# --- Create Gene Metadata DataFrame ---
+# For adding later as feature metadata
 gene_metadata <- data.frame(
-    gene_id = gene_names,
     simulated_baseline_mean = gene_baseline_means,
     simulated_dispersion = gene_dispersions,
     is_marker = gene_names %in% gene_names[unlist(marker_list)],
     marker_group = NA_character_, # Add column for which group it marks (if any)
-    total_counts = rowSums(example_counts),
+    n_cells_expressing = rowSums(counts_matrix > 0),
     row.names = gene_names
 )
-
 # Populate the marker_group column
 for (grp_name in names(marker_list)) {
     gene_indices <- marker_list[[grp_name]]
     gene_metadata$marker_group[gene_indices] <- grp_name
 }
-gene_metadata$marker_group <- factor(gene_metadata$marker_group) # Store as factor
-
-# --- Store objects ---
+gene_metadata$marker_group <- factor(gene_metadata$marker_group)
 
 
-# Save counts and metadata in a list
-# small_scrna_data <- list(
-#     counts = counts_matrix,
-#     cell_meta = cell_metadata,
-#     gene_meta = gene_metadata
-# )
+# --- Create Seurat Object ---
+example_seu <- Seurat::CreateSeuratObject(
+    counts = counts_matrix,
+    project = "SimScRNA",      # Arbitrary project name
+    assay = "RNA",             # Standard assay name for RNA-seq
+    meta.data = cell_metadata, # Add cell metadata directly
+    min.cells = 0,             # Include all genes initially
+    min.features = 0           # Include all cells initially
+)
 
-usethis::use_data(example_counts, overwrite = TRUE)
+# --- Add Gene Metadata to the Seurat Object ---
+example_seu[["RNA"]][[]] <- gene_metadata
+
+# --- Use usethis to save the data ---
+usethis::use_data(example_seu, overwrite = TRUE)

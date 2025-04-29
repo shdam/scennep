@@ -1,0 +1,17 @@
+bibentry(
+    bibtype = "Article",
+    title = "Single-Cell Nearest-Neighbor Pseudobulking of scRNA-seq expression data",
+    author = personList(
+        as.person("S\u{00F8}ren Helweg Dam"),
+        as.person("Lars R\u{00F8}nn Olsen")
+        ),
+    year = 2025,
+    journal = "BioRxiv",
+    doi = "",
+    textVersion = 
+    paste(
+        "Dam, S.H., Olsen, L.R.", 
+        "Single-Cell Nearest-Neighbor Pseudobulking of scRNA-seq expression data",
+        "BioRxiv (2025)"
+        )
+    )

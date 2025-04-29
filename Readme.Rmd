@@ -1,0 +1,96 @@
+---
+output: github_document
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+    
+# scennep: Single-Cell Nearest-Neighbor Pseudobulking
+
+<!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+<!-- [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable) -->
+<!-- badges: end -->
+
+`scennep` computes pseudobulk expression profiles for each cell in a single-cell RNA-seq (scRNA-seq) dataset based on its nearest neighbors. This approach aggregates the expression values of a cell and its top nearest neighbors.
+The purpose is to rescue zeros caused by dropouts and transcriptional bursting.
+`scennep` has many use cases - it was developed to improve the integration of scRNA-seq and cytometry data.
+
+## Article
+
+(TODO) A preprint is soon available for `scennep`.
+
+Please cite with `citation("scennep")`
+
+## Installation
+
+### Dependencies
+
+`scennep` works with both `Bioconductor` objects and `Seurat`.
+Install your preferred framework or both:
+
+```{r dependencies, eval=FALSE}
+# Seurat
+install.packages("Seurat")
+
+# Bioconductor
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("SingleCellExperiment", "scater", "scuttle", "scran", "igraph"))
+```
+
+### Install from GitHub
+
+```{r install, eval=FALSE}
+remotes::install_github("shdam/scennep")
+```
+
+## Vignettes
+
+(TODO) View use case vignettes on [Biosurf](https://biosurf.org/).
+
+## Usage
+
+`scennep` will work on a `matrix`, `Seurat`, and `SingleCellExperiment` object.
+If a matrix is provided, please choose an option for `as = c("seurat", "bioc")`.
+
+This example usage uses a tiny simulated dataset as a `Seurat` object.
+
+    
+```{r scennep}
+library(Seurat)
+library(scennep)
+data("pbmc_small")
+
+# Current PCA plot
+Seurat::DimPlot(pbmc_small, reduction = "pca", group.by = "RNA_snn_res.1")
+
+# Compute pseudobulk expression profiles
+pbmc_small <- scennep(
+    pbmc_small,
+    nn_count = 5 # Number of nearest neighbors - default: 20 - 5 is just for this tiny example
+    )
+
+```
+
+```{r plotting}
+
+# PCA of scennep output
+pbmc_small <- Seurat::ScaleData(pbmc_small)
+pbmc_small <- Seurat::RunPCA(pbmc_small, verbose = FALSE)
+Seurat::DimPlot(pbmc_small, reduction = "pca", group.by = "RNA_snn_res.1")
+```
+
+
+## Report issues
+
+If you have any issues or questions regarding the use of `scennep`, 
+please do not hesitate to raise an issue on GitHub. 
+In this way, others may also benefit from the answers and discussions.
