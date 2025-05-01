@@ -23,11 +23,13 @@ knitr::opts_chunk$set(
 The purpose is to rescue zeros caused by dropouts and transcriptional bursting.
 `scennep` has many use cases - it was developed to improve the integration of scRNA-seq and cytometry data.
 
-## Article
+<!-- ## Article 
 
 (TODO) A preprint is soon available for `scennep`.
 
 Please cite with `citation("scennep")`
+
+-->
 
 ## Installation
 
@@ -53,9 +55,12 @@ BiocManager::install(c("SingleCellExperiment", "scater", "scuttle", "scran", "ig
 remotes::install_github("shdam/scennep")
 ```
 
+<!--
 ## Vignettes
 
 (TODO) View use case vignettes on [Biosurf](https://biosurf.org/).
+-->
+
 
 ## Usage
 
@@ -67,8 +72,10 @@ This example usage uses a tiny simulated dataset as a `Seurat` object.
 See `?scennep` for the full configuration.
     
 ```{r scennep}
-library(Seurat)
+library(Seurat, warn.conflicts = FALSE)
 library(scennep)
+
+# Load test PBMC data from Seurat
 data("pbmc_small")
 
 # Current PCA plot
@@ -93,5 +100,4 @@ Seurat::DimPlot(pbmc_small, reduction = "pca", group.by = "RNA_snn_res.1")
 ## Report issues
 
 If you have any issues or questions regarding the use of `scennep`, 
-please do not hesitate to raise an issue on GitHub. 
-In this way, others may also benefit from the answers and discussions.
+please do not hesitate to raise an issue on GitHub.

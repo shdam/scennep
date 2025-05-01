@@ -15,11 +15,10 @@ nearest neighbors. The purpose is to rescue zeros caused by dropouts and
 transcriptional bursting. `scennep` has many use cases - it was
 developed to improve the integration of scRNA-seq and cytometry data.
 
-## Article
-
-(TODO) A preprint is soon available for `scennep`.
-
-Please cite with `citation("scennep")`
+<!-- ## Article 
+&#10;(TODO) A preprint is soon available for `scennep`.
+&#10;Please cite with `citation("scennep")`
+&#10;-->
 
 ## Installation
 
@@ -45,9 +44,10 @@ BiocManager::install(c("SingleCellExperiment", "scater", "scuttle", "scran", "ig
 remotes::install_github("shdam/scennep")
 ```
 
+<!--
 ## Vignettes
-
-(TODO) View use case vignettes on [Biosurf](https://biosurf.org/).
+&#10;(TODO) View use case vignettes on [Biosurf](https://biosurf.org/).
+-->
 
 ## Usage
 
@@ -60,7 +60,7 @@ This example usage uses a tiny simulated dataset as a `Seurat` object.
 See `?scennep` for the full configuration.
 
 ``` r
-library(Seurat)
+library(Seurat, warn.conflicts = FALSE)
 #> Loading required package: SeuratObject
 #> Loading required package: sp
 #> 'SeuratObject' was built under R 4.4.0 but the current version is
@@ -75,6 +75,8 @@ library(Seurat)
 #> 
 #>     intersect, t
 library(scennep)
+
+# Load test PBMC data from Seurat
 data("pbmc_small")
 
 # Current PCA plot
@@ -121,5 +123,4 @@ Seurat::DimPlot(pbmc_small, reduction = "pca", group.by = "RNA_snn_res.1")
 ## Report issues
 
 If you have any issues or questions regarding the use of `scennep`,
-please do not hesitate to raise an issue on GitHub. In this way, others
-may also benefit from the answers and discussions.
+please do not hesitate to raise an issue on GitHub.
