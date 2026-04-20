@@ -83,7 +83,7 @@ scennep <- function(
         check_package("Seurat")
     } else {
         invisible(sapply(
-            c("SingleCellExperiment", "scater", "scuttle", "scran", "igraph"), 
+            c("SingleCellExperiment", "scater", "scuttle", "scran", "igraph", "BiocNeighbors"), 
             check_package, repo = "bioc"))
         if (distance == "hamming") stop("`distance = 'hamming'` is only supported in Seurat.")
         distance <- .simpleCap(distance)

@@ -16,6 +16,7 @@ scennep(
   features = NULL,
   as = c("seurat", "bioc"),
   flavor = c("lognormal", "SCT", "CLR", "none"),
+  distance = c("euclidean", "cosine", "manhattan", "hamming"),
   return_S4 = ifelse(inherits(obj, "matrix"), FALSE, TRUE),
   normalize_data = TRUE,
   assay = c("counts", "exprs", "logcounts"),
@@ -48,6 +49,8 @@ cell has fewer than this number of neighbors, all are used. Default is 20.}
 \item{as}{If you provide a matrix, decide if you want to use Seurat or Bioconductor methods. Defaults to Seurat.}
 
 \item{flavor}{Flavor of normalization of counts. Set to "none" if data is already normalized or you wish to build PCA on counts.}
+
+\item{distance}{Distance metric for annoy: euclidean, cosine, manhattan, or hamming. OBS: hamming is only available with Seurat.}
 
 \item{return_S4}{Logical. If TRUE, the Seurat/SCE object is returned with a 'scennep' assay.}
 
